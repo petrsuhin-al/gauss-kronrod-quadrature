@@ -1,1 +1,1 @@
-# Gauss-Kronrod quadrature. 
+# Gauss-Kronrod Quadrature
