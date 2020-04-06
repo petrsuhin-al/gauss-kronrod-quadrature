@@ -1,8 +1,8 @@
 from consts import gauss_weights, kronrod_weights, gausskronrod_nodes
 from scipy.integrate import quad
 from math import cos, sin, sqrt
+from bisect import insort
 import numpy as np
-import bisect
 
 def get_current_kronrod_weight(nodes_count):
     global kronrodWeights
@@ -68,7 +68,7 @@ def integrate(f, a, b, nodes, args=(), min_intervals=1, limit=200, tol=1e-10):
 
     for left, right in zip(limits[:-1], limits[1:]):
         I, err = integrate_gausskronrod(fv, left, right, nodes, args)
-        bisect.insort(intervals, (err, left, right, I))
+        insort(intervals, (err, left, right, I))
 
     while True:
         Itotal = sum([x[3] for x in intervals])
@@ -89,9 +89,9 @@ def integrate(f, a, b, nodes, args=(), min_intervals=1, limit=200, tol=1e-10):
 
         # вычисляем интегралы и ошибки, заменяем один элемент в списке и добавляем другой в конец
         I, err = integrate_gausskronrod(fv, left, mid, nodes, args)
-        bisect.insort(intervals, (err, left, mid, I))
+        insort(intervals, (err, left, mid, I))
         I, err = integrate_gausskronrod(fv, mid, right, nodes, args)
-        bisect.insort(intervals, (err, mid, right, I))
+        insort(intervals, (err, mid, right, I))
 
 
 if __name__ == "__main__":
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     f = lambda x: x * sin(p * x)
     g = lambda x: -x / p * cos(p * x) + 1 / p ** 2 * sin(p * x)
     a, b = 1, 4
-    nodes = 31
+    nodes = 41
 
     expected = g(b) - g(a)
 
