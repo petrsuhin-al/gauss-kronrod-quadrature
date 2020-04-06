@@ -3,6 +3,7 @@ from scipy.integrate import quad
 from math import cos, sin, sqrt
 from bisect import insort
 import numpy as np
+from nodesCountType import NodesEnum
 
 def get_current_kronrod_weight(nodes_count):
     global kronrodWeights
@@ -100,7 +101,7 @@ if __name__ == "__main__":
     f = lambda x: x * sin(p * x)
     g = lambda x: -x / p * cos(p * x) + 1 / p ** 2 * sin(p * x)
     a, b = 1, 4
-    nodes = 41
+    nodes: int = NodesEnum.FIFTEEN_NODES.value
 
     expected = g(b) - g(a)
 
