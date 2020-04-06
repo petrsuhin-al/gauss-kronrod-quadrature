@@ -17,7 +17,10 @@ def get_current_gausskronrod_nodes(nodes_count):
     global gaussKronrodNodes
 
     if len(gaussKronrodNodes) == 0:
-        gaussKronrodNodes = np.append(gausskronrod_nodes[nodes_count], np.negative(gausskronrod_nodes[nodes_count][:-1][::-1]))
+        gaussKronrodNodes = np.append(
+            gausskronrod_nodes[nodes_count],
+            np.negative(gausskronrod_nodes[nodes_count][:-1][::-1])
+        )
 
     return gaussKronrodNodes
 
@@ -26,7 +29,8 @@ def get_current_gauss_weight(nodes_count):
     global gaussWeights
 
     if len(gaussWeights) == 0:
-        changedGaussWeightArr = np.append(gauss_weights[nodes_count], gauss_weights[nodes_count][::-1])
+        changedGaussWeightArr = gauss_weights[nodes_count][:-1][::-1] if divmod(nodes_count, 10)[0] % 2 else gauss_weights[nodes_count][::-1]
+        changedGaussWeightArr = np.append(gauss_weights[nodes_count], changedGaussWeightArr)
 
         for item in range(len(changedGaussWeightArr)):
             index = int(item + item + 1)
@@ -55,12 +59,12 @@ def integrate_gausskronrod(f, a, b, nodes, args=()):
     return integral_K * dx, dx * error
 
 
-def integrate(f, a, b, nodes, args=(), minintervals=1, limit=200, tol=1e-10):
+def integrate(f, a, b, nodes, args=(), min_intervals=1, limit=200, tol=1e-10):
     fv = np.vectorize(f)
 
     intervals = []
 
-    limits = np.linspace(a, b, minintervals + 1)
+    limits = np.linspace(a, b, min_intervals + 1)
 
     for left, right in zip(limits[:-1], limits[1:]):
         I, err = integrate_gausskronrod(fv, left, right, nodes, args)
@@ -89,13 +93,14 @@ def integrate(f, a, b, nodes, args=(), minintervals=1, limit=200, tol=1e-10):
         I, err = integrate_gausskronrod(fv, mid, right, nodes, args)
         bisect.insort(intervals, (err, mid, right, I))
 
+
 if __name__ == "__main__":
     kronrodWeights, gaussWeights, gaussKronrodNodes = [], [], []
     p = 100
     f = lambda x: x * sin(p * x)
     g = lambda x: -x / p * cos(p * x) + 1 / p ** 2 * sin(p * x)
     a, b = 1, 4
-    nodes = 21
+    nodes = 31
 
     expected = g(b) - g(a)
 
