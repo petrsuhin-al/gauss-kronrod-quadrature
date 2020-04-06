@@ -1,8 +1,41 @@
-from consts import get_current_gausskronrod_nodes, get_current_kronrod_weight, get_current_gauss_weight
+from consts import gauss_weights, kronrod_weights, gausskronrod_nodes
 from scipy.integrate import quad
 from math import cos, sin, sqrt
 import numpy as np
 import bisect
+
+def get_current_kronrod_weight(nodes_count):
+    global kronrodWeights
+
+    if len(kronrodWeights) == 0:
+        kronrodWeights = np.append(kronrod_weights[nodes_count], kronrod_weights[nodes_count][:-1][::-1])
+
+    return kronrodWeights
+
+
+def get_current_gausskronrod_nodes(nodes_count):
+    global gaussKronrodNodes
+
+    if len(gaussKronrodNodes) == 0:
+        gaussKronrodNodes = np.append(gausskronrod_nodes[nodes_count], np.negative(gausskronrod_nodes[nodes_count][:-1][::-1]))
+
+    return gaussKronrodNodes
+
+
+def get_current_gauss_weight(nodes_count):
+    global gaussWeights
+
+    if len(gaussWeights) == 0:
+        changedGaussWeightArr = np.append(gauss_weights[nodes_count], gauss_weights[nodes_count][::-1])
+
+        for item in range(len(changedGaussWeightArr)):
+            index = int(item + item + 1)
+
+            changedGaussWeightArr = np.concatenate((changedGaussWeightArr[:index], [0], changedGaussWeightArr[index:]))
+
+        gaussWeights = np.append([0], changedGaussWeightArr)
+
+    return gaussWeights
 
 
 def integrate_gausskronrod(f, a, b, nodes, args=()):
@@ -38,8 +71,6 @@ def integrate(f, a, b, nodes, args=(), minintervals=1, limit=200, tol=1e-10):
         err2 = sum([x[0] ** 2 for x in intervals])
         err = sqrt(err2)
 
-        print(abs(err / Itotal), tol, abs(err / Itotal) < tol)
-
         if abs(err / Itotal) < tol:
             return Itotal, err
 
@@ -58,13 +89,13 @@ def integrate(f, a, b, nodes, args=(), minintervals=1, limit=200, tol=1e-10):
         I, err = integrate_gausskronrod(fv, mid, right, nodes, args)
         bisect.insort(intervals, (err, mid, right, I))
 
-
 if __name__ == "__main__":
+    kronrodWeights, gaussWeights, gaussKronrodNodes = [], [], []
     p = 100
     f = lambda x: x * sin(p * x)
     g = lambda x: -x / p * cos(p * x) + 1 / p ** 2 * sin(p * x)
     a, b = 1, 4
-    nodes = 15
+    nodes = 21
 
     expected = g(b) - g(a)
 
