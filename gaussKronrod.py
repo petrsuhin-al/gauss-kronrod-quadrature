@@ -1,23 +1,25 @@
-from consts import gausskronrod_nodes, gauss_weights, kronrod_weights
+from consts import get_current_gausskronrod_nodes, get_current_kronrod_weight, get_current_gauss_weight
 from scipy.integrate import quad
 from math import cos, sin, sqrt
 import numpy as np
 import bisect
+
 
 def integrate_gausskronrod(f, a, b, nodes, args=()):
     assert b > a
 
     mid = 0.5 * (b + a)
     dx = 0.5 * (b - a)
-    zi = mid + gausskronrod_nodes[nodes] * dx
+    zi = mid + get_current_gausskronrod_nodes(nodes) * dx
 
     integrand = f(zi)
-    integral_G7 = np.sum(integrand[:7] * gauss_weights[nodes])
-    integral_K15 = np.sum(integrand * kronrod_weights[nodes])
 
-    error = (200 * abs(integral_G7 - integral_K15)) ** 1.5
+    integral_G = np.sum(integrand * get_current_gauss_weight(nodes))
+    integral_K = np.sum(integrand * get_current_kronrod_weight(nodes))
 
-    return integral_K15 * dx, dx * error
+    error = (200 * abs(integral_G - integral_K)) ** 1.5
+
+    return integral_K * dx, dx * error
 
 
 def integrate(f, a, b, nodes, args=(), minintervals=1, limit=200, tol=1e-10):
@@ -35,6 +37,8 @@ def integrate(f, a, b, nodes, args=(), minintervals=1, limit=200, tol=1e-10):
         Itotal = sum([x[3] for x in intervals])
         err2 = sum([x[0] ** 2 for x in intervals])
         err = sqrt(err2)
+
+        print(abs(err / Itotal), tol, abs(err / Itotal) < tol)
 
         if abs(err / Itotal) < tol:
             return Itotal, err
