@@ -1,35 +1,36 @@
-from consts import gauss_weights, kronrod_weights, gausskronrod_nodes
+from consts import gauss_weights, kronrod_weights, gauss_kronrod_nodes
+from nodes_count_enum import NodesCountEnum
 from scipy.integrate import quad
 from math import cos, sin, sqrt
 from bisect import insort
 import numpy as np
-from nodesCountType import NodesEnum
+
 
 def get_current_kronrod_weight(nodes_count):
-    global kronrodWeights
+    global available_kronrod_weights
 
-    if len(kronrodWeights) == 0:
-        kronrodWeights = np.append(kronrod_weights[nodes_count], kronrod_weights[nodes_count][:-1][::-1])
+    if len(available_kronrod_weights) == 0:
+        available_kronrod_weights = np.append(kronrod_weights[nodes_count], kronrod_weights[nodes_count][:-1][::-1])
 
-    return kronrodWeights
+    return available_kronrod_weights
 
 
-def get_current_gausskronrod_nodes(nodes_count):
-    global gaussKronrodNodes
+def get_current_gauss_kronrod_nodes(nodes_count):
+    global available_gauss_kronrod_nodes
 
-    if len(gaussKronrodNodes) == 0:
-        gaussKronrodNodes = np.append(
-            gausskronrod_nodes[nodes_count],
-            np.negative(gausskronrod_nodes[nodes_count][:-1][::-1])
+    if len(available_gauss_kronrod_nodes) == 0:
+        available_gauss_kronrod_nodes = np.append(
+            gauss_kronrod_nodes[nodes_count],
+            np.negative(gauss_kronrod_nodes[nodes_count][:-1][::-1])
         )
 
-    return gaussKronrodNodes
+    return available_gauss_kronrod_nodes
 
 
 def get_current_gauss_weight(nodes_count):
-    global gaussWeights
+    global available_gauss_weights
 
-    if len(gaussWeights) == 0:
+    if len(available_gauss_weights) == 0:
         changedGaussWeightArr = gauss_weights[nodes_count][:-1][::-1] if divmod(nodes_count, 10)[0] % 2 else gauss_weights[nodes_count][::-1]
         changedGaussWeightArr = np.append(gauss_weights[nodes_count], changedGaussWeightArr)
 
@@ -38,9 +39,9 @@ def get_current_gauss_weight(nodes_count):
 
             changedGaussWeightArr = np.concatenate((changedGaussWeightArr[:index], [0], changedGaussWeightArr[index:]))
 
-        gaussWeights = np.append([0], changedGaussWeightArr)
+        available_gauss_weights = np.append([0], changedGaussWeightArr)
 
-    return gaussWeights
+    return available_gauss_weights
 
 
 def integrate_gausskronrod(f, a, b, nodes, args=()):
@@ -48,7 +49,7 @@ def integrate_gausskronrod(f, a, b, nodes, args=()):
 
     mid = 0.5 * (b + a)
     dx = 0.5 * (b - a)
-    zi = mid + get_current_gausskronrod_nodes(nodes) * dx
+    zi = mid + get_current_gauss_kronrod_nodes(nodes) * dx
 
     integrand = f(zi)
 
@@ -96,12 +97,12 @@ def integrate(f, a, b, nodes, args=(), min_intervals=1, limit=200, tol=1e-10):
 
 
 if __name__ == "__main__":
-    kronrodWeights, gaussWeights, gaussKronrodNodes = [], [], []
+    available_kronrod_weights, available_gauss_weights, available_gauss_kronrod_nodes = [], [], []
     p = 100
     f = lambda x: x * sin(p * x)
     g = lambda x: -x / p * cos(p * x) + 1 / p ** 2 * sin(p * x)
     a, b = 1, 4
-    nodes: int = NodesEnum.FIFTEEN_NODES.value
+    nodes = NodesCountEnum.FIFTEEN_NODES.value
 
     expected = g(b) - g(a)
 
