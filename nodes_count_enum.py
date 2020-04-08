@@ -1,7 +1,7 @@
-import enum
+from enum import Enum
 
 
-class NodesCountEnum(enum.Enum):
+class NodesCountEnum(Enum):
     FIFTEEN_NODES = 15
     TWENTY_ONE_NODES = 21
     THIRTY_ONE_NODES = 31
