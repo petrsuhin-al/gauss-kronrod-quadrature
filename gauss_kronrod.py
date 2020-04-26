@@ -4,72 +4,78 @@ from scipy.integrate import quad
 from math import cos, sin, sqrt
 from bisect import insort
 import numpy as np
+import ctypes
+import multiprocessing as mp
 
 
 def get_current_kronrod_weight(nodes_count):
-    global available_kronrod_weights
-
-    if len(available_kronrod_weights) == 0:
-        available_kronrod_weights = np.append(kronrod_weights[nodes_count], kronrod_weights[nodes_count][:-1][::-1])
-
-    return available_kronrod_weights
+    return np.append(kronrod_weights[nodes_count], kronrod_weights[nodes_count][:-1][::-1])
 
 
 def get_current_gauss_kronrod_nodes(nodes_count):
-    global available_gauss_kronrod_nodes
-
-    if len(available_gauss_kronrod_nodes) == 0:
-        available_gauss_kronrod_nodes = np.append(
-            gauss_kronrod_nodes[nodes_count],
-            np.negative(gauss_kronrod_nodes[nodes_count][:-1][::-1])
-        )
-
-    return available_gauss_kronrod_nodes
+    return np.append(
+        gauss_kronrod_nodes[nodes_count],
+        np.negative(gauss_kronrod_nodes[nodes_count][:-1][::-1])
+    )
 
 
 def get_current_gauss_weight(nodes_count):
-    global available_gauss_weights
+    changedGaussWeightArr = gauss_weights[nodes_count][:-1][::-1] \
+        if divmod(nodes_count, 10)[0] % 2 \
+        else gauss_weights[nodes_count][::-1]
+    changedGaussWeightArr = np.append(gauss_weights[nodes_count], changedGaussWeightArr)
 
-    if len(available_gauss_weights) == 0:
-        changedGaussWeightArr = gauss_weights[nodes_count][:-1][::-1] if divmod(nodes_count, 10)[0] % 2 else gauss_weights[nodes_count][::-1]
-        changedGaussWeightArr = np.append(gauss_weights[nodes_count], changedGaussWeightArr)
+    for item in range(len(changedGaussWeightArr)):
+        index = int(item + item + 1)
 
-        for item in range(len(changedGaussWeightArr)):
-            index = int(item + item + 1)
+        changedGaussWeightArr = np.concatenate((changedGaussWeightArr[:index], [0], changedGaussWeightArr[index:]))
 
-            changedGaussWeightArr = np.concatenate((changedGaussWeightArr[:index], [0], changedGaussWeightArr[index:]))
-
-        available_gauss_weights = np.append([0], changedGaussWeightArr)
-
-    return available_gauss_weights
+    return np.append([0], changedGaussWeightArr)
 
 
 def integrate_gausskronrod(f, a, b, nodes, args=()):
+    available_kronrod_weights = get_current_kronrod_weight(nodes)
+    available_gauss_weights = get_current_gauss_weight(nodes)
+    available_gauss_kronrod_nodes = get_current_gauss_kronrod_nodes(nodes)
+
     assert b > a
 
     mid = 0.5 * (b + a)
     dx = 0.5 * (b - a)
-    zi = mid + get_current_gauss_kronrod_nodes(nodes) * dx
+    zi = mid + available_gauss_kronrod_nodes * dx
 
     integrand = f(zi)
 
-    integral_G = np.sum(integrand * get_current_gauss_weight(nodes))
-    integral_K = np.sum(integrand * get_current_kronrod_weight(nodes))
+    integral_G = np.sum(integrand * available_gauss_weights)
+    integral_K = np.sum(integrand * available_kronrod_weights)
 
     error = (200 * abs(integral_G - integral_K)) ** 1.5
 
-    return integral_K * dx, dx * error
+    return integral_K * dx, dx * error, a, b
 
 
-def integrate(f, a, b, nodes, args=(), min_intervals=1, limit=200, tol=1e-10):
+def integrate(f, a, b, nodes, args=(), min_intervals=2, limit=200, tol=1e-10):
     fv = np.vectorize(f)
-
+    # print(f)
     intervals = []
 
     limits = np.linspace(a, b, min_intervals + 1)
 
+    # for left, right in zip(limits[:-1], limits[1:]):
+    #     I, err, a, b = integrate_gausskronrod(fv, left, right, nodes, args)
+    #     insort(intervals, (err, a, b, I))
+
+    data = []
     for left, right in zip(limits[:-1], limits[1:]):
-        I, err = integrate_gausskronrod(fv, left, right, nodes, args)
+        data.append((left, right))
+
+    with mp.Pool(mp.cpu_count()) as pool:
+        results = [pool.apply(
+            integrate_gausskronrod,
+            args=[fv, left, right, nodes, args]
+        ) for left, right in zip(limits[:-1], limits[1:])]
+
+    for I, err, left, right in results:
         insort(intervals, (err, left, right, I))
 
     while True:
@@ -90,16 +96,21 @@ def integrate(f, a, b, nodes, args=(), min_intervals=1, limit=200, tol=1e-10):
         mid = left + (right - left) / 2
 
         # вычисляем интегралы и ошибки, заменяем один элемент в списке и добавляем другой в конец
-        I, err = integrate_gausskronrod(fv, left, mid, nodes, args)
+        I, err, a, b = integrate_gausskronrod(fv, left, mid, nodes, args)
         insort(intervals, (err, left, mid, I))
-        I, err = integrate_gausskronrod(fv, mid, right, nodes, args)
+        I, err, a, b = integrate_gausskronrod(fv, mid, right, nodes, args)
         insort(intervals, (err, mid, right, I))
 
 
-if __name__ == "__main__":
-    available_kronrod_weights, available_gauss_weights, available_gauss_kronrod_nodes = [], [], []
+def f(x):
     p = 100
-    f = lambda x: x * sin(p * x)
+    return x * sin(p * x)
+
+if __name__ == "__main__":
+    manager = mp.Manager()
+
+    p = 100
+    # f = lambda x: x * sin(p * x)
     g = lambda x: -x / p * cos(p * x) + 1 / p ** 2 * sin(p * x)
     a, b = 1, 4
     nodes = NodesCountEnum.FIFTEEN_NODES.value
