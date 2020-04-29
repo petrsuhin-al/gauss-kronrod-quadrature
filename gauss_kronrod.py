@@ -4,6 +4,8 @@ from scipy.integrate import quad
 from math import cos, sin, sqrt
 from bisect import insort
 import numpy as np
+from datetime import datetime
+import time
 
 
 def get_current_kronrod_weight(nodes_count):
@@ -104,7 +106,11 @@ if __name__ == "__main__":
     a, b = 1, 4
     nodes = NodesCountEnum.FIFTEEN_NODES.value
 
+    start_time = datetime.now()
     expected = g(b) - g(a)
 
     for result, esterror in (quad(f, a, b), integrate(f, a, b, nodes)):
         print("{:15.13f} {:15g} {:15g}".format(result, esterror, 1 - result / expected))
+
+    time.sleep(5)
+    print('TIME:', datetime.now() - start_time)
