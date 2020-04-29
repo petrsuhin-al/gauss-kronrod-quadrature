@@ -7,7 +7,7 @@ import time
 
 p = 100
 a, b = 1, 4
-nodes = NodesCountEnum.FIFTEEN_NODES.value
+nodes = NodesCountEnum.SIXTY_ONE_NODES.value
 
 
 def f(x): return x * sin(p * x)

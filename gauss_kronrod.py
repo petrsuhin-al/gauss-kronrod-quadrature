@@ -3,6 +3,7 @@ from math import sqrt
 from bisect import insort
 import numpy as np
 import multiprocessing as mp
+import psutil
 
 
 class GaussKronrodQuadrature:
@@ -16,13 +17,13 @@ class GaussKronrodQuadrature:
         self.GAUSS_WEIGHT = self.get_current_gauss_weight(nodes)
         self.GAUSS_KRONROD_NODES = self.get_current_gauss_kronrod_nodes(nodes)
 
-    def integrate(self, f, a, b, args=(), min_intervals=2, limit=200, tol=1e-10):
+    def integrate(self, f, a, b, args=(), min_intervals=12, limit=200, tol=1e-10):
         fv = np.vectorize(f)
         intervals = []
 
         limits = np.linspace(a, b, min_intervals + 1)
 
-        with mp.Pool(mp.cpu_count()) as first_pool:
+        with mp.Pool(psutil.cpu_count(logical=False)) as first_pool:
             results = [
                 first_pool.apply(
                     self.integrate_gausskronrod,
